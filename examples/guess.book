@@ -1,0 +1,26 @@
+appN com.test.guess
+
+declare.Int secret
+declare.Int guess
+
+secret == math.randomize(0 50)
+
+say "Guess a number between 0 and 50!"
+
+loop;
+    who (Your guess)
+    ask (who [Your guess])
+    guess == ask.LastAns
+
+    are guess == secret
+    then;
+        say "You got it!"
+        stop
+    otherwise are guess > secret
+        say "Too high!"
+    otherwise;
+        say "Too low!"
+    next
+next
+
+bye

@@ -1,0 +1,8 @@
+appN com.test.hello
+
+say "Hello, World!"
+
+ask.(Really time.clock)
+say ask.LastAns
+
+bye

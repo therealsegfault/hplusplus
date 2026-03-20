@@ -1,0 +1,14 @@
+#!/bin/bash
+# h++ — H++ Novel launcher
+# Installed by Homebrew to /usr/local/bin/h++
+
+HPLUSPLUS_HOME="$(dirname "$(readlink -f "$0")")/.."
+JAR="$HPLUSPLUS_HOME/libexec/hplusplus.jar"
+
+if [ ! -f "$JAR" ]; then
+    echo "[H++] Runtime not found at $JAR"
+    echo "      Try: brew reinstall hplusplus"
+    exit 1
+fi
+
+exec java -jar "$JAR" "$@"
