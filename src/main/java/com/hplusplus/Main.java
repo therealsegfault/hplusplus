@@ -15,32 +15,26 @@ public class Main {
 
     static final String VERSION = "0.1.0";
 
+    // Working directory of the currently running app.
+    // Resolves relative paths for fetch: and remember file writes.
+    static Path appWorkingDir = Path.of(System.getProperty("user.home"));
+
     public static void main(String[] args) {
-        if (args.length == 0) {
-            printUsage();
-            System.exit(0);
-        }
-
-        String command = args[0];
-
-        switch (command) {
+        if (args.length == 0) { printUsage(); System.exit(0); }
+        switch (args[0]) {
             case "new"     -> Repl.start();
-            case "run"     -> {
-                if (args.length < 2) { System.err.println("[H++] Usage: h++ run <app/script>"); System.exit(1); }
-                runFile(args[1]);
-            }
-            case "release" -> {
-                if (args.length < 2) { System.err.println("[H++] Usage: h++ release <app/script>"); System.exit(1); }
-                release(args[1]);
-            }
+            case "run"     -> { if (args.length < 2) { System.err.println("[H++] Usage: h++ run <app/script>"); System.exit(1); } runFile(args[1]); }
+            case "release" -> { if (args.length < 2) { System.err.println("[H++] Usage: h++ release <app/script>"); System.exit(1); } release(args[1]); }
             case "version", "--version", "-v" -> System.out.println("H++ v" + VERSION);
-            default -> { System.err.println("[H++] Unknown command: " + command); printUsage(); System.exit(1); }
+            default -> { System.err.println("[H++] Unknown command: " + args[0]); printUsage(); System.exit(1); }
         }
     }
 
     static void runFile(String target) {
         Path filePath = resolveBookPath(target);
         if (!Files.exists(filePath)) { System.err.println("[H++] Cannot find script: " + filePath); System.exit(1); }
+        // Set CWD to the app's folder so fetch: and remember paths resolve correctly
+        appWorkingDir = filePath.toAbsolutePath().getParent();
         String source;
         try { source = Files.readString(filePath); }
         catch (IOException e) { System.err.println("[H++] Could not read: " + filePath); System.exit(1); return; }
@@ -53,11 +47,8 @@ public class Main {
         String source;
         try { source = Files.readString(filePath); }
         catch (IOException e) { System.err.println("[H++] Could not read: " + filePath); System.exit(1); return; }
-        try {
-            new Parser(new Lexer(source).tokenize()).parse();
-        } catch (Exception e) {
-            System.err.println("[H++] Release failed — parse error: " + e.getMessage()); System.exit(1); return;
-        }
+        try { new Parser(new Lexer(source).tokenize()).parse(); }
+        catch (Exception e) { System.err.println("[H++] Release failed — parse error: " + e.getMessage()); System.exit(1); return; }
         String name = filePath.getFileName().toString().replace(".book", "");
         Path releaseDir = filePath.getParent().resolve(".release");
         try {
@@ -69,15 +60,17 @@ public class Main {
     }
 
     public static void runSource(String source) {
-        Lexer lexer = new Lexer(source);
-        List<Token> tokens = lexer.tokenize();
+        List<Token> tokens = new Lexer(source).tokenize();
         Node.Program program = new Parser(tokens).parse();
-        new Interpreter().execute(program);
+        Interpreter interpreter = new Interpreter();
+        interpreter.setAppWorkingDir(appWorkingDir);
+        interpreter.execute(program);
     }
 
     static Path resolveBookPath(String target) {
-        if (target.endsWith(".book")) return Path.of(target);
-        return Path.of(target + ".book");
+        Path p = target.endsWith(".book") ? Path.of(target) : Path.of(target + ".book");
+        if (p.isAbsolute()) return p;
+        return Path.of(System.getProperty("user.home")).resolve(p);
     }
 
     private static void printUsage() {

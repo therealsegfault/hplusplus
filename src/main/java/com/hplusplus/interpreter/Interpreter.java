@@ -14,6 +14,11 @@ public class Interpreter {
 
     private final Environment env = new Environment();
     private final Scanner scanner = new Scanner(System.in);
+    private Path appWorkingDir = Path.of(System.getProperty("user.home"));
+
+    public void setAppWorkingDir(Path dir) {
+        this.appWorkingDir = dir;
+    }
 
     public void execute(Node.Program program) {
         for (Node stmt : program.statements()) {
@@ -118,10 +123,17 @@ public class Interpreter {
         }
 
         if (target.contains(".")) {
-            // file write
-            String ext = target.substring(target.lastIndexOf('.') + 1);
+            // file write — resolve relative to app working directory
+            Path path;
+            if (target.startsWith("~/")) {
+                path = Path.of(System.getProperty("user.home")).resolve(target.substring(2));
+            } else if (Path.of(target).isAbsolute()) {
+                path = Path.of(target);
+            } else {
+                path = appWorkingDir.resolve(target);
+            }
             try {
-                Path path = Path.of(System.getProperty("user.home"), target);
+                Files.createDirectories(path.getParent());
                 Files.writeString(path, formatValue(value));
                 System.out.println("[Novel] Written to " + path);
             } catch (IOException e) {
